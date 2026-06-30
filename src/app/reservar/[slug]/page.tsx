@@ -29,6 +29,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
         phone: studio.phone ?? "",
         address: studio.address ?? "",
         depositDefaultAmount: studio.depositDefaultAmount,
+        instagram: studio.instagram ?? "",
         diasDisponibles: studio.availability.map(a => a.dayOfWeek),
       }}
     />

@@ -22,6 +22,7 @@ model Studio {
   stripeCustomerId     String?
   depositDefaultAmount Int          @default(5000)
   consentFormTemplate  String?
+  instagram            String?
   timezone             String       @default("Europe/Madrid")
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
@@ -68,6 +69,7 @@ model Artist {
   id       String  @id @default(cuid())
   studioId String
   name     String
+  email    String?
   isActive Boolean @default(true)
   color    String  @default("#6366f1")
 

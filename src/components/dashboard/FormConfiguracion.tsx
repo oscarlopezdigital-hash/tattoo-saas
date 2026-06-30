@@ -7,10 +7,10 @@ const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 type Studio = {
   id: string; name: string; slug: string; email: string;
-  phone: string | null; address: string | null;
+  phone: string | null; address: string | null; instagram: string | null;
   depositDefaultAmount: number; consentFormTemplate: string | null;
 };
-type Artista = { id: string; name: string; isActive: boolean; color: string };
+type Artista = { id: string; name: string; isActive: boolean; color: string; email: string | null };
 type Disponibilidad = { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean };
 
 export default function FormConfiguracion({
@@ -24,6 +24,7 @@ export default function FormConfiguracion({
     address: studio.address ?? "",
     depositDefaultAmount: (studio.depositDefaultAmount / 100).toString(),
     consentFormTemplate: studio.consentFormTemplate ?? "",
+    instagram: studio.instagram ?? "",
   });
   const [horarios, setHorarios] = useState<Disponibilidad[]>(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -104,6 +105,16 @@ export default function FormConfiguracion({
             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
             <input value={datos.address} onChange={e => setDatos(d => ({ ...d, address: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+              <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-r border-gray-300">@</span>
+              <input value={datos.instagram} onChange={e => setDatos(d => ({ ...d, instagram: e.target.value.replace(/^@/, "") }))}
+                placeholder="tu_estudio"
+                className="flex-1 px-3 py-2 text-sm focus:outline-none" />
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Aparecerá como enlace en tu página pública de reserva</p>
           </div>
         </div>
       </div>

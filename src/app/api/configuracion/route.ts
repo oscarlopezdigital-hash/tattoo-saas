@@ -11,7 +11,7 @@ export async function PATCH(request: NextRequest) {
   if (!dbUser) return NextResponse.json({ error: "Sin estudio" }, { status: 404 });
 
   const body = await request.json();
-  const { name, phone, address, depositDefaultAmount, consentFormTemplate, disponibilidad } = body;
+  const { name, phone, address, instagram, depositDefaultAmount, consentFormTemplate, disponibilidad } = body;
 
   const studio = await prisma.studio.update({
     where: { id: dbUser.studioId },
@@ -19,6 +19,7 @@ export async function PATCH(request: NextRequest) {
       ...(name && { name }),
       ...(phone !== undefined && { phone }),
       ...(address !== undefined && { address }),
+      ...(instagram !== undefined && { instagram: instagram?.trim() || null }),
       ...(depositDefaultAmount !== undefined && { depositDefaultAmount: Number(depositDefaultAmount) * 100 }),
       ...(consentFormTemplate !== undefined && { consentFormTemplate }),
     },

@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
       studioAddress: studio.address || "",
       clienteName: nombre,
       artistName: artist.name,
+      artistEmail: artist.email || "",
       tattooDescription: descripcion || "",
       consentUrl: `${appUrl}/consentimiento/${cita.publicToken}`,
       fechaHora: formatDate(new Date(dateTime)),

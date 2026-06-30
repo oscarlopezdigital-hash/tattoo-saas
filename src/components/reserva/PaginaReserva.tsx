@@ -4,7 +4,7 @@ import { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 
 type StudioPublico = {
-  slug: string; name: string; phone: string; address: string;
+  slug: string; name: string; phone: string; address: string; instagram: string;
   depositDefaultAmount: number; diasDisponibles: number[];
 };
 type Paso = "fecha" | "hora" | "datos" | "procesando";
@@ -75,6 +75,12 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
           <h1 className="text-2xl font-bold text-gray-900">{studio.name}</h1>
           {studio.address && <p className="text-sm text-gray-500 mt-1">{studio.address}</p>}
           <p className="text-sm text-gray-500">{studio.phone}</p>
+          {studio.instagram && (
+            <a href={`https://instagram.com/${studio.instagram}`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-sm text-pink-600 hover:text-pink-700 font-medium">
+              📷 @{studio.instagram}
+            </a>
+          )}
         </div>
 
         {/* Progreso */}

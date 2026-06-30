@@ -4,13 +4,14 @@ import { useState } from "react";
 
 const COLORES = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#8b5cf6","#14b8a6"];
 
-type Artista = { id: string; name: string; isActive: boolean; color: string };
+type Artista = { id: string; name: string; isActive: boolean; color: string; email?: string | null };
 
 export default function GestionArtistas({ artistas: inicial }: { artistas: Artista[] }) {
   const [artistas, setArtistas] = useState(inicial);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editNombre, setEditNombre] = useState("");
-  const [nuevo, setNuevo] = useState({ nombre: "", color: "#6366f1" });
+  const [editEmail, setEditEmail] = useState("");
+  const [nuevo, setNuevo] = useState({ nombre: "", email: "", color: "#6366f1" });
   const [añadiendo, setAñadiendo] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -26,13 +27,13 @@ export default function GestionArtistas({ artistas: inicial }: { artistas: Artis
     setLoading(null);
   }
 
-  async function guardarNombre(id: string) {
+  async function guardarEdicion(id: string) {
     if (!editNombre.trim()) return;
     setLoading(id);
     const res = await fetch(`/api/artistas/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editNombre }),
+      body: JSON.stringify({ name: editNombre, email: editEmail }),
     });
     const updated = await res.json();
     setArtistas(prev => prev.map(a => a.id === id ? updated : a));
@@ -46,11 +47,11 @@ export default function GestionArtistas({ artistas: inicial }: { artistas: Artis
     const res = await fetch("/api/artistas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: nuevo.nombre, color: nuevo.color }),
+      body: JSON.stringify({ name: nuevo.nombre, color: nuevo.color, email: nuevo.email }),
     });
     const artista = await res.json();
     setArtistas(prev => [...prev, artista]);
-    setNuevo({ nombre: "", color: "#6366f1" });
+    setNuevo({ nombre: "", email: "", color: "#6366f1" });
     setAñadiendo(false);
     setLoading(null);
   }
@@ -74,23 +75,37 @@ export default function GestionArtistas({ artistas: inicial }: { artistas: Artis
             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: a.color }} />
 
             {editandoId === a.id ? (
-              <input
-                autoFocus
-                value={editNombre}
-                onChange={e => setEditNombre(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") guardarNombre(a.id); if (e.key === "Escape") setEditandoId(null); }}
-                className="flex-1 px-2 py-1 border border-indigo-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <div className="flex-1 flex gap-2">
+                <input
+                  autoFocus
+                  value={editNombre}
+                  onChange={e => setEditNombre(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Escape") setEditandoId(null); }}
+                  placeholder="Nombre"
+                  className="flex-1 px-2 py-1 border border-indigo-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={e => setEditEmail(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") guardarEdicion(a.id); if (e.key === "Escape") setEditandoId(null); }}
+                  placeholder="Email (avisos de citas)"
+                  className="flex-1 px-2 py-1 border border-indigo-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
             ) : (
-              <span className={`flex-1 text-sm ${a.isActive ? "text-gray-800" : "text-gray-400 line-through"}`}>
-                {a.name}
-              </span>
+              <div className="flex-1">
+                <span className={`text-sm ${a.isActive ? "text-gray-800" : "text-gray-400 line-through"}`}>
+                  {a.name}
+                </span>
+                {a.email && <span className="block text-xs text-gray-400">{a.email}</span>}
+              </div>
             )}
 
             <div className="flex items-center gap-2 shrink-0">
               {editandoId === a.id ? (
                 <>
-                  <button type="button" onClick={() => guardarNombre(a.id)} disabled={loading === a.id}
+                  <button type="button" onClick={() => guardarEdicion(a.id)} disabled={loading === a.id}
                     className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Guardar</button>
                   <button type="button" onClick={() => setEditandoId(null)}
                     className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
@@ -98,7 +113,7 @@ export default function GestionArtistas({ artistas: inicial }: { artistas: Artis
               ) : (
                 <>
                   <button type="button"
-                    onClick={() => { setEditandoId(a.id); setEditNombre(a.name); }}
+                    onClick={() => { setEditandoId(a.id); setEditNombre(a.name); setEditEmail(a.email ?? ""); }}
                     className="text-xs text-gray-400 hover:text-indigo-600 transition-colors">Editar</button>
                   <button type="button" onClick={() => toggleActivo(a)} disabled={loading === a.id}
                     className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
@@ -121,6 +136,13 @@ export default function GestionArtistas({ artistas: inicial }: { artistas: Artis
             placeholder="Nombre del artista"
             value={nuevo.nombre}
             onChange={e => setNuevo(p => ({ ...p, nombre: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            type="email"
+            placeholder="Email (recibirá aviso cuando le reserven cita)"
+            value={nuevo.email}
+            onChange={e => setNuevo(p => ({ ...p, email: e.target.value }))}
             onKeyDown={e => { if (e.key === "Enter") añadirArtista(); }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />

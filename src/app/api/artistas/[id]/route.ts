@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.name !== undefined && { name: body.name.trim() }),
       ...(body.isActive !== undefined && { isActive: body.isActive }),
       ...(body.color !== undefined && { color: body.color }),
+      ...(body.email !== undefined && { email: body.email?.trim() || null }),
     },
   });
 

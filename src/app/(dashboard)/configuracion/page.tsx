@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import FormConfiguracion from "@/components/dashboard/FormConfiguracion";
-import BotonInvitar from "@/components/dashboard/BotonInvitar";
 
 export default async function ConfiguracionPage() {
   const supabase = await createClient();
@@ -29,7 +28,6 @@ export default async function ConfiguracionPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Configuración</h1>
-      <BotonInvitar />
       <FormConfiguracion
         studio={JSON.parse(JSON.stringify(studio))}
         artistas={JSON.parse(JSON.stringify(artistas))}

@@ -149,7 +149,7 @@ export default function CalendarioSemanal({
         </div>
 
         {/* Filas de horas */}
-        <div className="overflow-y-auto max-h-[600px]">
+        <div>
           {HORAS.map(hora => (
             <div key={hora} className="grid grid-cols-8 border-b border-gray-50 min-h-[64px]">
               <div className="p-2 text-right pr-3">

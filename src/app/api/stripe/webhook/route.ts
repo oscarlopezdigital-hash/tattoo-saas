@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { sendWhatsApp } from "@/lib/twilio";
 import { emailConfirmacion } from "../../../../../emails/confirmacion";
+import { emailNotificacionArtista } from "../../../../../emails/notificacionArtista";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const { appointmentId, depositId, clientEmail, clientPhone, studioName, studioPhone,
-            clienteName, artistName, tattooDescription, consentUrl, fechaHora } = session.metadata ?? {};
+            clienteName, artistName, artistEmail, tattooDescription, consentUrl, fechaHora } = session.metadata ?? {};
 
     if (!appointmentId || !depositId) {
       return NextResponse.json({ error: "Metadata incompleta" }, { status: 400 });
@@ -38,11 +39,12 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    // Email de confirmación
+    const depositAmount = session.amount_total
+      ? new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(session.amount_total / 100)
+      : "";
+
+    // Email de confirmación al cliente
     if (clientEmail && process.env.RESEND_API_KEY) {
-      const depositAmount = session.amount_total
-        ? new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(session.amount_total / 100)
-        : "";
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL!,
@@ -57,6 +59,26 @@ export async function POST(request: NextRequest) {
             tattooDescription: tattooDescription ?? "",
             depositAmount,
             consentUrl: consentUrl ?? "",
+          }),
+        });
+      } catch { /* silencioso */ }
+    }
+
+    // Email de aviso al artista
+    if (artistEmail && process.env.RESEND_API_KEY) {
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL!,
+          to: artistEmail,
+          subject: `Nueva cita — ${clienteName ?? "cliente"} · ${fechaHora}`,
+          html: emailNotificacionArtista({
+            artistName: artistName ?? "",
+            clienteName: clienteName ?? "",
+            clientePhone: clientPhone ?? "",
+            studioName: studioName ?? "",
+            fechaHora: fechaHora ?? "",
+            tattooDescription: tattooDescription ?? "",
+            depositAmount,
           }),
         });
       } catch { /* silencioso */ }
