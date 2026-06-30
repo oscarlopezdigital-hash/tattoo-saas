@@ -20,14 +20,13 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { appointmentId, depositId, clientEmail, studioName, studioPhone, studioAddress,
+    const { appointmentId, depositId, clientEmail, clientPhone, studioName, studioPhone,
             clienteName, artistName, tattooDescription, consentUrl, fechaHora } = session.metadata ?? {};
 
     if (!appointmentId || !depositId) {
       return NextResponse.json({ error: "Metadata incompleta" }, { status: 400 });
     }
 
-    // Actualizar depósito y cita
     await Promise.all([
       prisma.deposit.update({
         where: { id: depositId },
@@ -39,44 +38,42 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    // Enviar email de confirmación si hay email
-    if (clientEmail && process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.startsWith("re_...")) {
+    // Email de confirmación
+    if (clientEmail && process.env.RESEND_API_KEY) {
       const depositAmount = session.amount_total
         ? new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(session.amount_total / 100)
         : "";
-
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to: clientEmail,
-        subject: `Cita confirmada — ${studioName}`,
-        html: emailConfirmacion({
-          clienteName: clienteName ?? "",
-          studioName: studioName ?? "",
-          studioPhone: studioPhone ?? "",
-          fechaHora: fechaHora ?? "",
-          artistName: artistName ?? "",
-          tattooDescription: tattooDescription ?? "",
-          depositAmount,
-          consentUrl: consentUrl ?? "",
-        }),
-      });
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL!,
+          to: clientEmail,
+          subject: `Cita confirmada — ${studioName}`,
+          html: emailConfirmacion({
+            clienteName: clienteName ?? "",
+            studioName: studioName ?? "",
+            studioPhone: studioPhone ?? "",
+            fechaHora: fechaHora ?? "",
+            artistName: artistName ?? "",
+            tattooDescription: tattooDescription ?? "",
+            depositAmount,
+            consentUrl: consentUrl ?? "",
+          }),
+        });
+      } catch { /* silencioso */ }
     }
-  }
 
-    // Enviar WhatsApp de confirmación si hay teléfono y Twilio configurado
-    const clientPhone = session.metadata?.clientPhone;
+    // WhatsApp de confirmación
     if (clientPhone && process.env.TWILIO_ACCOUNT_SID) {
       try {
         await sendWhatsApp(
           clientPhone,
-          `✅ *Cita confirmada* en ${studioName}\n\n📅 ${fechaHora}\n👨‍🎨 Artista: ${artistName}\n\nFirma tu consentimiento aquí:\n${consentUrl}\n\n¿Necesitas cambiar algo? Llámanos: ${studioPhone}`
+          `✅ *Cita confirmada* en ${studioName}\n\n📅 ${fechaHora}\n👨‍🎨 Artista: ${artistName}\n\nFirma tu consentimiento:\n${consentUrl}\n\n¿Necesitas cambiar algo? ${studioPhone}`
         );
-      } catch { /* silencioso si Twilio no está configurado */ }
+      } catch { /* silencioso */ }
     }
   }
 
   return NextResponse.json({ received: true });
 }
 
-// Stripe necesita el body sin parsear
 export const runtime = "nodejs";
