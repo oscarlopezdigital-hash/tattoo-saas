@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -82,6 +83,13 @@ export default function LoginPage() {
             {loading ? "Accediendo..." : "Acceder"}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-gray-500">
+          ¿Eres nuevo?{" "}
+          <Link href="/registro" className="text-indigo-600 hover:underline">
+            Crear mi estudio
+          </Link>
+        </p>
       </div>
     </div>
   );
