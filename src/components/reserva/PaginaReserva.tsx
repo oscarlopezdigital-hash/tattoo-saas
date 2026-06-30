@@ -6,15 +6,35 @@ import { formatPrice } from "@/lib/utils";
 
 type StudioPublico = {
   slug: string; name: string; phone: string; address: string; instagram: string;
-  depositDefaultAmount: number; diasDisponibles: number[];
+  depositDefaultAmount: number; depositRequired: boolean; diasDisponibles: number[];
 };
-type Paso = "fecha" | "hora" | "datos" | "procesando";
+type ServicioPublico = {
+  id: string; name: string; description: string | null;
+  duration: number; price: number | null; depositRequired: boolean; depositAmount: number | null;
+};
+
+type Paso = "servicio" | "fecha" | "hora" | "datos" | "procesando" | "exito";
 
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS_CORTO = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
 
-export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
-  const [paso, setPaso] = useState<Paso>("fecha");
+function formatDuration(min: number): string {
+  if (min < 60) return `${min}min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
+export default function PaginaReserva({
+  studio, servicios = [],
+}: {
+  studio: StudioPublico; servicios?: ServicioPublico[];
+}) {
+  const tieneServicios = servicios.length > 0;
+  const pasoInicial: Paso = tieneServicios ? "servicio" : "fecha";
+
+  const [paso, setPaso] = useState<Paso>(pasoInicial);
+  const [servicioSeleccionado, setServicioSeleccionado] = useState<ServicioPublico | null>(null);
   const [mesActual, setMesActual] = useState(() => {
     const hoy = new Date(); hoy.setDate(1); hoy.setHours(0,0,0,0); return hoy;
   });
@@ -25,10 +45,17 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ nombre:"", telefono:"", email:"", fechaNacimiento:"", descripcion:"" });
 
+  // Determina si esta reserva requiere señal
+  const requiresDeposit = servicioSeleccionado
+    ? servicioSeleccionado.depositRequired
+    : studio.depositRequired;
+
+  const depositoActivo = servicioSeleccionado?.depositAmount ?? studio.depositDefaultAmount;
+
   // Construir cuadrícula del mes
   const primerDia = new Date(mesActual);
   const ultimoDia = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0);
-  const offsetInicio = (primerDia.getDay() + 6) % 7; // lunes = 0
+  const offsetInicio = (primerDia.getDay() + 6) % 7;
   const totalCeldas = Math.ceil((offsetInicio + ultimoDia.getDate()) / 7) * 7;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
 
@@ -54,7 +81,12 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
     const res = await fetch("/api/reservas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: studio.slug, dateTime, ...form }),
+      body: JSON.stringify({
+        slug: studio.slug,
+        dateTime,
+        serviceId: servicioSeleccionado?.id ?? null,
+        ...form,
+      }),
     });
 
     if (!res.ok) {
@@ -64,9 +96,23 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
       return;
     }
 
-    const { checkoutUrl } = await res.json();
-    window.location.href = checkoutUrl;
+    const data = await res.json();
+
+    if (data.confirmed) {
+      setPaso("exito");
+    } else {
+      window.location.href = data.checkoutUrl;
+    }
   }
+
+  // Pasos de progreso visibles
+  const pasosFlujo = tieneServicios
+    ? (["servicio","fecha","hora","datos"] as const)
+    : (["fecha","hora","datos"] as const);
+  const pasoIdx = pasosFlujo.indexOf(paso as never);
+  const pasosVisibles = tieneServicios
+    ? ["Servicio","Fecha","Hora","Datos"]
+    : ["Fecha","Hora","Datos"];
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
@@ -82,32 +128,80 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
               📷 @{studio.instagram}
             </a>
           )}
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left max-w-sm mx-auto">
-            <p className="text-xs font-semibold text-amber-800">¿Cómo funciona?</p>
-            <p className="text-xs text-amber-700 mt-1">
-              Elige una fecha tentativa y cuéntanos tu idea. Pagas la señal para reservar el hueco y
-              el artista te contactará para confirmar los detalles del diseño.
-            </p>
-          </div>
+          {paso !== "exito" && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left max-w-sm mx-auto">
+              <p className="text-xs font-semibold text-amber-800">¿Cómo funciona?</p>
+              <p className="text-xs text-amber-700 mt-1">
+                {requiresDeposit
+                  ? "Elige una fecha tentativa y cuéntanos tu idea. Pagas la señal para reservar el hueco y el artista te contactará para confirmar los detalles."
+                  : "Elige una fecha y cuéntanos tu idea. La reserva se confirma al instante sin pago previo."}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Progreso */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {(["fecha","hora","datos"] as const).map((p, i) => (
-            <div key={p} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                paso === p ? "bg-indigo-600 text-white" :
-                (paso === "hora" && i === 0) || (paso === "datos" && i <= 1) || paso === "procesando"
-                  ? "bg-indigo-100 text-indigo-600" : "bg-gray-200 text-gray-400"
-              }`}>{i+1}</div>
-              {i < 2 && <div className="w-8 h-px bg-gray-300" />}
+        {paso !== "exito" && (
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {pasosVisibles.map((label, i) => (
+              <div key={label} className="flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  pasoIdx === i ? "bg-indigo-600 text-white" :
+                  pasoIdx > i || paso === "procesando" ? "bg-indigo-100 text-indigo-600" : "bg-gray-200 text-gray-400"
+                }`}>{i+1}</div>
+                {i < pasosVisibles.length - 1 && <div className="w-8 h-px bg-gray-300" />}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* PASO 0: Servicio */}
+        {paso === "servicio" && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+            <h3 className="font-semibold text-gray-800 mb-4">¿Qué servicio necesitas?</h3>
+            <div className="space-y-2">
+              {servicios.map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => { setServicioSeleccionado(s); setPaso("fecha"); }}
+                  className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900 group-hover:text-indigo-700">{s.name}</span>
+                      {s.description && <p className="text-xs text-gray-400 mt-0.5">{s.description}</p>}
+                      {!s.depositRequired && (
+                        <span className="inline-block mt-1 text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Sin señal</span>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                        {formatDuration(s.duration)}
+                      </span>
+                      {s.price !== null && (
+                        <p className="text-xs text-gray-400 mt-1">Desde {formatPrice(s.price)}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* PASO 1: Fecha */}
         {(paso === "fecha" || paso === "hora") && (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+            {servicioSeleccionado && (
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                <div>
+                  <p className="text-xs text-gray-400">Servicio</p>
+                  <p className="text-sm font-medium text-gray-800">{servicioSeleccionado.name}</p>
+                </div>
+                <button type="button" onClick={() => { setPaso("servicio"); setFechaSeleccionada(""); setHoraSeleccionada(""); }}
+                  className="text-xs text-indigo-500 hover:text-indigo-700">
+                  Cambiar
+                </button>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => { const n=new Date(mesActual); n.setMonth(n.getMonth()-1); setMesActual(n); }}
                 className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">←</button>
@@ -183,6 +277,7 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
             </div>
 
             <div className="bg-indigo-50 rounded-lg p-3 mb-5 text-sm text-indigo-700">
+              {servicioSeleccionado && <span className="font-medium">{servicioSeleccionado.name} · </span>}
               {new Date(fechaSeleccionada + "T12:00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · {horaSeleccionada}h
             </div>
 
@@ -220,14 +315,22 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
-                Pagarás una señal de <strong className="text-gray-900">{formatPrice(studio.depositDefaultAmount)}</strong> para reservar el hueco.
-                El artista te contactará para confirmar el diseño. El importe se descuenta del precio final.
-              </div>
+              {requiresDeposit ? (
+                <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+                  Pagarás una señal de <strong className="text-gray-900">{formatPrice(depositoActivo)}</strong> para reservar el hueco.
+                  El artista te contactará para confirmar el diseño. El importe se descuenta del precio final.
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700">
+                  <strong>Reserva gratuita</strong> — tu cita se confirma al instante sin ningún pago previo.
+                </div>
+              )}
 
               <button type="submit"
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors">
-                Reservar y pagar señal {formatPrice(studio.depositDefaultAmount)} →
+                {requiresDeposit
+                  ? `Reservar y pagar señal ${formatPrice(depositoActivo)} →`
+                  : "Confirmar reserva →"}
               </button>
 
               <p className="text-center text-xs text-gray-400">
@@ -243,7 +346,33 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
         {/* Procesando */}
         {paso === "procesando" && (
           <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
-            <p className="text-gray-500 text-sm">Redirigiendo al pago seguro...</p>
+            <p className="text-gray-500 text-sm">
+              {requiresDeposit ? "Redirigiendo al pago seguro..." : "Confirmando tu reserva..."}
+            </p>
+          </div>
+        )}
+
+        {/* Éxito sin señal */}
+        {paso === "exito" && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">¡Cita confirmada!</h2>
+            <p className="text-gray-500 text-sm mb-1">
+              {servicioSeleccionado && <><strong>{servicioSeleccionado.name}</strong> · </>}
+              {new Date(fechaSeleccionada + "T12:00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · {horaSeleccionada}h
+            </p>
+            {form.email && (
+              <p className="text-xs text-gray-400 mt-2">
+                Recibirás la confirmación en <strong>{form.email}</strong>
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-4">
+              ¿Necesitas cambiar algo? Llama a {studio.phone || studio.name}
+            </p>
           </div>
         )}
       </div>

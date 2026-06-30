@@ -11,7 +11,7 @@ export default async function ConfiguracionPage() {
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   if (!dbUser) redirect("/login");
 
-  const [studio, artistas, disponibilidad] = await Promise.all([
+  const [studio, artistas, disponibilidad, servicios] = await Promise.all([
     prisma.studio.findUnique({ where: { id: dbUser.studioId } }),
     prisma.artist.findMany({
       where: { studioId: dbUser.studioId },
@@ -20,6 +20,10 @@ export default async function ConfiguracionPage() {
     prisma.availability.findMany({
       where: { studioId: dbUser.studioId },
       orderBy: { dayOfWeek: "asc" },
+    }),
+    prisma.service.findMany({
+      where: { studioId: dbUser.studioId },
+      orderBy: [{ isActive: "desc" }, { name: "asc" }],
     }),
   ]);
 
@@ -32,6 +36,7 @@ export default async function ConfiguracionPage() {
         studio={JSON.parse(JSON.stringify(studio))}
         artistas={JSON.parse(JSON.stringify(artistas))}
         disponibilidad={JSON.parse(JSON.stringify(disponibilidad))}
+        servicios={JSON.parse(JSON.stringify(servicios))}
         enlacePublico={`${process.env.NEXT_PUBLIC_APP_URL}/reservar/${studio.slug}`}
       />
     </div>

@@ -2,27 +2,34 @@
 
 import { useState } from "react";
 import GestionArtistas from "./GestionArtistas";
+import GestionServicios from "./GestionServicios";
 
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 type Studio = {
   id: string; name: string; slug: string; email: string;
   phone: string | null; address: string | null; instagram: string | null;
-  depositDefaultAmount: number; consentFormTemplate: string | null;
+  depositDefaultAmount: number; depositRequired: boolean; consentFormTemplate: string | null;
 };
 type Artista = { id: string; name: string; isActive: boolean; color: string; email: string | null };
 type Disponibilidad = { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean };
+type Servicio = {
+  id: string; name: string; description: string | null;
+  duration: number; price: number | null; depositRequired: boolean; depositAmount: number | null; isActive: boolean;
+};
 
 export default function FormConfiguracion({
-  studio, artistas, disponibilidad, enlacePublico,
+  studio, artistas, disponibilidad, enlacePublico, servicios,
 }: {
-  studio: Studio; artistas: Artista[]; disponibilidad: Disponibilidad[]; enlacePublico: string;
+  studio: Studio; artistas: Artista[]; disponibilidad: Disponibilidad[];
+  enlacePublico: string; servicios: Servicio[];
 }) {
   const [datos, setDatos] = useState({
     name: studio.name,
     phone: studio.phone ?? "",
     address: studio.address ?? "",
     depositDefaultAmount: (studio.depositDefaultAmount / 100).toString(),
+    depositRequired: studio.depositRequired,
     consentFormTemplate: studio.consentFormTemplate ?? "",
     instagram: studio.instagram ?? "",
   });
@@ -95,11 +102,27 @@ export default function FormConfiguracion({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Depósito por defecto (€)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Señal por defecto (€)</label>
               <input type="number" min="0" value={datos.depositDefaultAmount}
+                disabled={!datos.depositRequired}
                 onChange={e => setDatos(d => ({ ...d, depositDefaultAmount: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40" />
             </div>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Requerir señal para reservar</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {datos.depositRequired
+                  ? "Los clientes pagan la señal antes de confirmar la cita"
+                  : "Las reservas se confirman directamente, sin pago previo"}
+              </p>
+            </div>
+            <button type="button"
+              onClick={() => setDatos(d => ({ ...d, depositRequired: !d.depositRequired }))}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${datos.depositRequired ? "bg-indigo-600" : "bg-gray-200"}`}>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${datos.depositRequired ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
@@ -144,6 +167,8 @@ export default function FormConfiguracion({
       </div>
 
       <GestionArtistas artistas={artistas} />
+
+      <GestionServicios serviciosIniciales={servicios} />
 
       {/* Consentimiento */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
