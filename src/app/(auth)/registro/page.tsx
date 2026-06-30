@@ -19,6 +19,7 @@ function slugify(text: string) {
 export default function RegistroPage() {
   const router = useRouter();
   const [form, setForm] = useState({
+    codigoAcceso: "",
     email: "",
     password: "",
     studioName: "",
@@ -78,6 +79,21 @@ export default function RegistroPage() {
           {error && (
             <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Código de acceso *
+            </label>
+            <input
+              name="codigoAcceso"
+              type="text"
+              required
+              value={form.codigoAcceso}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Código que te hemos enviado"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

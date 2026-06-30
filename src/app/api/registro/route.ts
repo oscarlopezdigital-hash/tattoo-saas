@@ -3,10 +3,14 @@ import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
-  const { email, password, studioName, slug, phone, address } = await request.json();
+  const { email, password, studioName, slug, phone, address, codigoAcceso } = await request.json();
 
-  if (!email || !password || !studioName || !slug) {
+  if (!email || !password || !studioName || !slug || !codigoAcceso) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
+  }
+
+  if (codigoAcceso !== process.env.REGISTRO_INVITE_CODE) {
+    return NextResponse.json({ error: "Código de acceso incorrecto." }, { status: 403 });
   }
 
   const slugClean = slug.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
