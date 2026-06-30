@@ -90,6 +90,11 @@ export default function LoginPage() {
             Contáctanos
           </a>
         </p>
+        <p className="mt-3 text-center text-xs text-gray-300">
+          <Link href="/privacidad" className="hover:text-gray-500">Privacidad</Link>
+          {" · "}
+          <Link href="/terminos" className="hover:text-gray-500">Términos</Link>
+        </p>
       </div>
     </div>
   );

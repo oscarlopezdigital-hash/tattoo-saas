@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
 type StudioPublico = {
@@ -221,6 +222,13 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors">
                 Pagar depósito {formatPrice(studio.depositDefaultAmount)} →
               </button>
+
+              <p className="text-center text-xs text-gray-400">
+                Al reservar aceptas nuestra{" "}
+                <Link href="/privacidad" target="_blank" className="text-indigo-500 hover:underline">
+                  Política de privacidad
+                </Link>.
+              </p>
             </form>
           </div>
         )}

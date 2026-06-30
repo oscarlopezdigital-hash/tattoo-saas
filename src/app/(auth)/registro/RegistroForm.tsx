@@ -198,6 +198,13 @@ export default function RegistroForm() {
             >
               {loading ? "Creando tu estudio..." : "Crear mi estudio →"}
             </button>
+
+            <p className="text-center text-xs text-gray-400">
+              Al crear tu estudio aceptas los{" "}
+              <Link href="/terminos" className="text-indigo-500 hover:underline">Términos de uso</Link>
+              {" "}y la{" "}
+              <Link href="/privacidad" className="text-indigo-500 hover:underline">Política de privacidad</Link>.
+            </p>
           </form>
         )}
 
