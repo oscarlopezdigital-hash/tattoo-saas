@@ -36,20 +36,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Error al crear la cuenta." }, { status: 500 });
   }
 
-  await prisma.studio.create({
+  const studio = await prisma.studio.create({
     data: {
-      userId: authData.user!.id,
       name: studioName,
       slug: slugClean,
+      email,
       phone: phone || null,
       address: address || null,
       depositDefaultAmount: 5000,
       artists: {
-        create: {
-          name: "Artista Principal",
-          isActive: true,
-        },
+        create: { name: "Artista Principal", isActive: true },
       },
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      id: authData.user!.id,
+      studioId: studio.id,
+      name: studioName,
+      email,
+      role: "ADMIN",
     },
   });
 
