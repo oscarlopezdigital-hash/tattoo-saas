@@ -75,13 +75,20 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{studio.name}</h1>
           {studio.address && <p className="text-sm text-gray-500 mt-1">{studio.address}</p>}
-          <p className="text-sm text-gray-500">{studio.phone}</p>
+          {studio.phone && <p className="text-sm text-gray-500">{studio.phone}</p>}
           {studio.instagram && (
             <a href={`https://instagram.com/${studio.instagram}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 mt-2 text-sm text-pink-600 hover:text-pink-700 font-medium">
               📷 @{studio.instagram}
             </a>
           )}
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left max-w-sm mx-auto">
+            <p className="text-xs font-semibold text-amber-800">¿Cómo funciona?</p>
+            <p className="text-xs text-amber-700 mt-1">
+              Elige una fecha tentativa y cuéntanos tu idea. Pagas la señal para reservar el hueco y
+              el artista te contactará para confirmar los detalles del diseño.
+            </p>
+          </div>
         </div>
 
         {/* Progreso */}
@@ -214,13 +221,13 @@ export default function PaginaReserva({ studio }: { studio: StudioPublico }) {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
-                Al confirmar pagarás un depósito de <strong className="text-gray-900">{formatPrice(studio.depositDefaultAmount)}</strong> para asegurar tu reserva.
-                Este importe se descuenta del precio final de la sesión.
+                Pagarás una señal de <strong className="text-gray-900">{formatPrice(studio.depositDefaultAmount)}</strong> para reservar el hueco.
+                El artista te contactará para confirmar el diseño. El importe se descuenta del precio final.
               </div>
 
               <button type="submit"
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors">
-                Pagar depósito {formatPrice(studio.depositDefaultAmount)} →
+                Reservar y pagar señal {formatPrice(studio.depositDefaultAmount)} →
               </button>
 
               <p className="text-center text-xs text-gray-400">

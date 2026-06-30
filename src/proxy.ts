@@ -43,6 +43,13 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/ingresos") ||
     request.nextUrl.pathname.startsWith("/configuracion");
 
+  const isRootRoute = request.nextUrl.pathname === "/";
+
+  // Usuario logueado en landing → su panel
+  if (user && isRootRoute) {
+    return NextResponse.redirect(new URL(isSuperAdmin ? "/admin" : "/dashboard", request.url));
+  }
+
   // Superadmin: login → /admin
   if (user && isSuperAdmin && isAuthRoute) {
     return NextResponse.redirect(new URL("/admin", request.url));

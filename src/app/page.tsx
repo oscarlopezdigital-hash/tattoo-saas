@@ -1,19 +1,16 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-
-const CONTACTO = "oscarlopez.digital@gmail.com";
+import FormContacto from "@/components/landing/FormContacto";
 
 const FEATURES = [
   {
     icon: "📅",
     title: "Reservas online 24/7",
-    desc: "Tus clientes reservan cita ellos solos desde un enlace propio, sin llamadas ni mensajes idas y vueltas.",
+    desc: "Tus clientes solicitan cita ellos solos desde un enlace propio, sin llamadas ni mensajes idas y vueltas.",
   },
   {
     icon: "💳",
     title: "Depósito automático",
-    desc: "Cobra la señal de la reserva con Stripe en el momento de reservar. Sin citas fantasma.",
+    desc: "Cobra la señal al confirmar la cita con Stripe. Sin citas fantasma ni transferencias manuales.",
   },
   {
     icon: "🗓️",
@@ -38,20 +35,12 @@ const FEATURES = [
 ];
 
 const PASOS = [
-  { n: "1", title: "Contacta con nosotros", desc: "Te activamos tu estudio y te damos acceso." },
+  { n: "1", title: "Contacta con nosotros", desc: "Te activamos tu estudio y te damos acceso en menos de 24h." },
   { n: "2", title: "Configura tu estudio", desc: "Horarios, depósito, artistas y tu enlace de reservas." },
-  { n: "3", title: "Comparte tu enlace", desc: "Tus clientes reservan solos, tú gestionas todo desde el panel." },
+  { n: "3", title: "Comparte tu enlace", desc: "Tus clientes solicitan cita solos, tú gestionas todo desde el panel." },
 ];
 
-export default async function RootPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (user) {
-    const isSuperAdmin = user.email === process.env.SUPERADMIN_EMAIL;
-    redirect(isSuperAdmin ? "/admin" : "/dashboard");
-  }
-
+export default function RootPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
@@ -74,16 +63,12 @@ export default async function RootPage() {
           informado digital — todo en un solo sitio.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
-          <a
-            href={`mailto:${CONTACTO}?subject=Quiero%20activar%20mi%20estudio%20en%20TattooManager`}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
+          <a href="#contacto"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors">
             Solicita acceso →
           </a>
-          <Link
-            href="/login"
-            className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl transition-colors"
-          >
+          <Link href="/login"
+            className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl transition-colors">
             Ya tengo cuenta
           </Link>
         </div>
@@ -118,16 +103,13 @@ export default async function RootPage() {
         </div>
       </section>
 
-      {/* CTA final */}
-      <section className="max-w-3xl mx-auto px-6 py-16 border-t border-gray-100 text-center">
-        <h2 className="text-2xl font-bold text-gray-900">¿Listo para dejar el cuaderno y el WhatsApp suelto?</h2>
-        <p className="mt-3 text-gray-500">Contáctanos y activamos tu estudio en menos de 24 horas.</p>
-        <a
-          href={`mailto:${CONTACTO}?subject=Quiero%20activar%20mi%20estudio%20en%20TattooManager`}
-          className="mt-6 inline-block px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Contactar por email
-        </a>
+      {/* Formulario de contacto */}
+      <section id="contacto" className="max-w-xl mx-auto px-6 py-16 border-t border-gray-100">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">Solicita acceso</h2>
+          <p className="mt-2 text-gray-500 text-sm">Cuéntanos tu estudio y te contactamos en menos de 24 horas.</p>
+        </div>
+        <FormContacto />
       </section>
 
       {/* Footer */}
@@ -137,7 +119,6 @@ export default async function RootPage() {
           <div className="flex items-center gap-5 text-xs text-gray-400">
             <Link href="/privacidad" className="hover:text-gray-600">Política de privacidad</Link>
             <Link href="/terminos" className="hover:text-gray-600">Términos de uso</Link>
-            <a href={`mailto:${CONTACTO}`} className="hover:text-gray-600">Contacto</a>
           </div>
         </div>
       </footer>
