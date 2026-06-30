@@ -84,11 +84,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
-          ¿Eres nuevo?{" "}
-          <Link href="/registro" className="text-indigo-600 hover:underline">
-            Crear mi estudio
-          </Link>
+        <p className="mt-4 text-center text-xs text-gray-400">
+          ¿Quieres un sistema de reservas para tu estudio?{" "}
+          <a href="mailto:oscarlopez.digital@gmail.com" className="text-indigo-500 hover:underline">
+            Contáctanos
+          </a>
         </p>
       </div>
     </div>
