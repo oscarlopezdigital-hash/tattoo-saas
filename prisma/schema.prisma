@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ESTUDIO
+// ─────────────────────────────────────────────
+
+model Studio {
+  id                   String       @id @default(cuid())
+  name                 String
+  slug                 String       @unique
+  email                String       @unique
+  phone                String?
+  address              String?
+  subscriptionPlan     Plan         @default(FREE)
+  stripeCustomerId     String?
+  depositDefaultAmount Int          @default(5000)
+  consentFormTemplate  String?
+  timezone             String       @default("Europe/Madrid")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  users        User[]
+  artists      Artist[]
+  clients      Client[]
+  appointments Appointment[]
+  availability Availability[]
+}
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+}
+
+// ─────────────────────────────────────────────
+// USUARIO (staff del estudio)
+// id = mismo UUID que auth.users de Supabase
+// ─────────────────────────────────────────────
+
+model User {
+  id        String   @id
+  studioId  String
+  name      String
+  email     String   @unique
+  role      Role     @default(ARTIST)
+  createdAt DateTime @default(now())
+
+  studio Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  ARTIST
+}
+
+// ─────────────────────────────────────────────
+// ARTISTA
+// ─────────────────────────────────────────────
+
+model Artist {
+  id       String  @id @default(cuid())
+  studioId String
+  name     String
+  isActive Boolean @default(true)
+  color    String  @default("#6366f1")
+
+  studio       Studio        @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+// ─────────────────────────────────────────────
+// CLIENTE FINAL
+// ─────────────────────────────────────────────
+
+model Client {
+  id        String    @id @default(cuid())
+  studioId  String
+  name      String
+  phone     String
+  email     String?
+  birthDate DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  studio       Studio        @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  consentForms ConsentForm[]
+
+  @@unique([studioId, phone])
+}
+
+// ─────────────────────────────────────────────
+// CITA
+// ─────────────────────────────────────────────
+
+model Appointment {
+  id                String            @id @default(cuid())
+  studioId          String
+  clientId          String
+  artistId          String
+  dateTime          DateTime
+  estimatedDuration Int
+  status            AppointmentStatus @default(PENDING)
+  tattooDescription String?
+  estimatedPrice    Int?
+  publicToken       String            @unique @default(cuid())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  studio      Studio       @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  client      Client       @relation(fields: [clientId], references: [id])
+  artist      Artist       @relation(fields: [artistId], references: [id])
+  deposit     Deposit?
+  consentForm ConsentForm?
+  reminders   Reminder[]
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─────────────────────────────────────────────
+// DEPÓSITO
+// ─────────────────────────────────────────────
+
+model Deposit {
+  id              String        @id @default(cuid())
+  appointmentId   String        @unique
+  amount          Int
+  stripeSessionId String?
+  stripePaymentId String?
+  status          DepositStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+enum DepositStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+// ─────────────────────────────────────────────
+// FORMULARIO DE CONSENTIMIENTO
+// ─────────────────────────────────────────────
+
+model ConsentForm {
+  id            String   @id @default(cuid())
+  clientId      String
+  appointmentId String   @unique
+  signedContent String
+  signedAt      DateTime
+  signatureIp   String?
+  signerName    String
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
+
+  client      Client      @relation(fields: [clientId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// DISPONIBILIDAD DEL ESTUDIO
+// ─────────────────────────────────────────────
+
+model Availability {
+  id        String  @id @default(cuid())
+  studioId  String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean @default(true)
+
+  studio Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@unique([studioId, dayOfWeek])
+}
+
+// ─────────────────────────────────────────────
+// RECORDATORIO
+// ─────────────────────────────────────────────
+
+model Reminder {
+  id            String         @id @default(cuid())
+  appointmentId String
+  type          ReminderType   @default(EMAIL)
+  status        ReminderStatus @default(PENDING)
+  scheduledFor  DateTime
+  sentAt        DateTime?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+enum ReminderType {
+  EMAIL
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
