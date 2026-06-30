@@ -25,13 +25,16 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const superAdminEmail = process.env.SUPERADMIN_EMAIL;
+  const isSuperAdmin = !!user && user.email === superAdminEmail;
 
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/registro");
+
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
 
   const isDashboardRoute =
     request.nextUrl.pathname.startsWith("/dashboard") ||
@@ -39,12 +42,29 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/clientes") ||
     request.nextUrl.pathname.startsWith("/configuracion");
 
-  if (!user && isDashboardRoute) {
+  // Superadmin: login → /admin
+  if (user && isSuperAdmin && isAuthRoute) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  // Superadmin intenta entrar al dashboard de estudio → /admin
+  if (user && isSuperAdmin && isDashboardRoute) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  // Proteger /admin: solo superadmin
+  if (isAdminRoute && !isSuperAdmin) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Usuario normal: login → /dashboard
   if (user && isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Proteger dashboard: requiere login
+  if (!user && isDashboardRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return supabaseResponse;
