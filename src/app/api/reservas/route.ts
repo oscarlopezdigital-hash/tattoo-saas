@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       tattooDescription: descripcion || "",
       consentUrl: `${appUrl}/consentimiento/${cita.publicToken}`,
       fechaHora: formatDate(new Date(dateTime)),
+      clientPhone: telefono,
     },
     success_url: `${appUrl}/reservar/${slug}/confirmacion?session_id={CHECKOUT_SESSION_ID}&cita=${cita.id}`,
     cancel_url: `${appUrl}/reservar/${slug}`,

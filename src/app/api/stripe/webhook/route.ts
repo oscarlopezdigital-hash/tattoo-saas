@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
+import { sendWhatsApp } from "@/lib/twilio";
 import { emailConfirmacion } from "../../../../../emails/confirmacion";
 
 export async function POST(request: NextRequest) {
@@ -59,6 +60,18 @@ export async function POST(request: NextRequest) {
           consentUrl: consentUrl ?? "",
         }),
       });
+    }
+  }
+
+    // Enviar WhatsApp de confirmación si hay teléfono y Twilio configurado
+    const clientPhone = session.metadata?.clientPhone;
+    if (clientPhone && process.env.TWILIO_ACCOUNT_SID) {
+      try {
+        await sendWhatsApp(
+          clientPhone,
+          `✅ *Cita confirmada* en ${studioName}\n\n📅 ${fechaHora}\n👨‍🎨 Artista: ${artistName}\n\nFirma tu consentimiento aquí:\n${consentUrl}\n\n¿Necesitas cambiar algo? Llámanos: ${studioPhone}`
+        );
+      } catch { /* silencioso si Twilio no está configurado */ }
     }
   }
 

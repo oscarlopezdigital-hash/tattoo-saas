@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
+import { sendWhatsApp } from "@/lib/twilio";
 import { emailRecordatorio } from "../../../../../emails/recordatorio";
 import { formatDate } from "@/lib/utils";
 
@@ -61,6 +62,17 @@ export async function GET(request: NextRequest) {
           consentFirmado: !!cita.consentForm,
         }),
       });
+
+      // WhatsApp si tiene teléfono y Twilio configurado
+      if (cita.client.phone && process.env.TWILIO_ACCOUNT_SID) {
+        try {
+          const consentFirmado = !!cita.consentForm;
+          await sendWhatsApp(
+            cita.client.phone,
+            `⏰ *Recordatorio de cita* — ${cita.studio.name}\n\n📅 Mañana a las ${new Date(cita.dateTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}h\n👨‍🎨 ${cita.artist.name}\n📍 ${cita.studio.address ?? ""}\n${!consentFirmado ? `\n⚠️ Recuerda firmar el consentimiento:\n${process.env.NEXT_PUBLIC_APP_URL}/consentimiento/${cita.publicToken}\n` : ""}\n¿Necesitas cambiar algo? ${cita.studio.phone ?? ""}`
+          );
+        } catch { /* silencioso */ }
+      }
 
       await prisma.reminder.update({
         where: { id: recordatorio.id },
