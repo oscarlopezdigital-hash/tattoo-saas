@@ -3,14 +3,16 @@ import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
-  const { email, password, studioName, slug, phone, address, codigoAcceso } = await request.json();
+  const { email, password, studioName, slug, phone, address, token } = await request.json();
 
-  if (!email || !password || !studioName || !slug || !codigoAcceso) {
+  if (!email || !password || !studioName || !slug || !token) {
     return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
   }
 
-  if (codigoAcceso !== process.env.REGISTRO_INVITE_CODE) {
-    return NextResponse.json({ error: "Código de acceso incorrecto." }, { status: 403 });
+  // Validar token de un solo uso
+  const invite = await prisma.inviteToken.findUnique({ where: { token } });
+  if (!invite || invite.usedAt) {
+    return NextResponse.json({ error: "Enlace de acceso inválido o ya utilizado." }, { status: 403 });
   }
 
   const slugClean = slug.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -40,29 +42,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Error al crear la cuenta." }, { status: 500 });
   }
 
-  const studio = await prisma.studio.create({
-    data: {
-      name: studioName,
-      slug: slugClean,
-      email,
-      phone: phone || null,
-      address: address || null,
-      depositDefaultAmount: 5000,
-      artists: {
-        create: { name: "Artista Principal", isActive: true },
+  // Marcar token como usado y crear estudio en una sola transacción
+  await prisma.$transaction([
+    prisma.inviteToken.update({ where: { token }, data: { usedAt: new Date() } }),
+    prisma.studio.create({
+      data: {
+        name: studioName,
+        slug: slugClean,
+        email,
+        phone: phone || null,
+        address: address || null,
+        depositDefaultAmount: 5000,
+        artists: { create: { name: "Artista Principal", isActive: true } },
+        users: {
+          create: {
+            id: authData.user!.id,
+            name: studioName,
+            email,
+            role: "ADMIN",
+          },
+        },
       },
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      id: authData.user!.id,
-      studioId: studio.id,
-      name: studioName,
-      email,
-      role: "ADMIN",
-    },
-  });
+    }),
+  ]);
 
   return NextResponse.json({ ok: true });
 }
