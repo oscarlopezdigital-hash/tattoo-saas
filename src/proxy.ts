@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/dashboard") ||
     request.nextUrl.pathname.startsWith("/calendario") ||
     request.nextUrl.pathname.startsWith("/clientes") ||
+    request.nextUrl.pathname.startsWith("/ingresos") ||
     request.nextUrl.pathname.startsWith("/configuracion");
 
   // Superadmin: login → /admin
